@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APULA FIRE_OS V3.0 | Mission Critical</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --red: #e21b3c;
+            --blue: #1368ce;
+            --green: #26890c;
+            --orange: #d89e00;
+            --dark: #333333;
+            --white: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #f2f2f2;
+            font-family: 'Montserrat', sans-serif;
+            height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        /* Bento Grid Layout */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 15px;
+            height: 100%;
+        }
+
+        .tile {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: transform 0.1s;
+        }
+
+        /* Kahoot Style Tiles */
+        .zone { color: var(--white); text-shadow: 2px 2px rgba(0,0,0,0.2); }
+        #alpha { background-color: var(--green); }
+        #beta { background-color: var(--blue); }
+        #gamma { background-color: var(--orange); }
+
+        .zone.active-fire {
+            background-color: var(--red) !important;
+            animation: pulse 0.5s infinite;
+        }
+
+        #camera-module {
+            grid-column: span 2;
+            grid-row: span 2;
+            background: var(--dark);
+            overflow: hidden;
+        }
+
+        #controls {
+            grid-column: span 1;
+            grid-row: span 2;
+            background: var(--white);
+        }
+
+        /* Typography & Buttons */
+        h1 { font-family: 'Orbitron', sans-serif; margin: 0; font-size: 1.2rem; color: var(--dark); }
+        .status-label { font-size: 2rem; font-weight: 900; }
+        
+        .k-btn {
+            background: var(--white);
+            border: none;
+            border-bottom: 4px solid #ccc;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-weight: 900;
+            cursor: pointer;
+            margin: 10px;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .k-btn:active { transform: translateY(3px); border-bottom: 0; }
+
+        /* Emergency Overlay */
+        #emergency-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--red);
+            z-index: 9999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            animation: flash-bg 0.2s infinite;
+        }
+
+        @keyframes pulse { 0% { scale: 1; } 50% { scale: 1.05; } 100% { scale: 1; } }
+        @keyframes flash-bg { 0% { background: var(--red); } 50% { background: #b1122d; } }
+
+        video { width: 100%; height: 100%; object-fit: cover; border-radius: 15px; }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard">
+        <div id="alpha" class="tile zone">
+            <h1>ZONE ALPHA</h1>
+            <div class="status-label">SAFE</div>
+        </div>
+        
+        <div id="beta" class="tile zone">
+            <h1>ZONE BETA</h1>
+            <div class="status-label">SAFE</div>
+        </div>
+
+        <div id="gamma" class="tile zone">
+            <h1>ZONE GAMMA</h1>
+            <div class="status-label">SAFE</div>
+        </div>
+
+        <div id="camera-module" class="tile">
+            <video id="webcam" autoplay playsinline></video>
+        </div>
+
+        <div id="controls" class="tile">
+            <button class="k-btn" onclick="connectSerial()" style="background: var(--blue); color: white;">CONNECT ARDUINO</button>
+            <button class="k-btn" onclick="togglePump(true)" style="background: var(--red); color: white;">MANUAL PUMP ON</button>
+            <button class="k-btn" onclick="togglePump(false)" style="background: var(--green); color: white;">PUMP OFF</button>
+        </div>
+        
+        <div class="tile" style="grid-column: span 1; background: #eee;">
+            <h1>SYSTEM LOG</h1>
+            <div id="log" style="font-size: 0.8rem; padding: 10px; overflow-y: auto;">Awaiting Serial...</div>
+        </div>
+    </div>
+
+    <div id="emergency-modal">
+        <h1 style="font-size: 8rem;">FIRE DETECTED</h1>
+        <button class="k-btn" onclick="acknowledgeAlert()" style="font-size: 3rem; padding: 40px 80px;">ACKNOWLEDGE & STOP PUMP</button>
+    </div>
+
+    <script>
+        let port, reader, sirenInterval;
+        let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // 1. Web Serial Implementation
+        async function connectSerial() {
+            try {
+                port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 9600 });
+                document.getElementById('log').innerText = "Connected to Arduino";
+                readSerial();
+            } catch (err) {
+                console.error("Serial Connection Failed", err);
+            }
+        }
+
+        async function readSerial() {
+            const decoder = new TextDecoder();
+            while (port.readable) {
+                reader = port.readable.getReader();
+                try {
+                    while (true) {
+                        const { value, done } = await reader.read();
+                        if (done) break;
+                        const data = decoder.decode(value).trim();
+                        handleSensorData(data);
+                    }
+                } finally {
+                    reader.releaseLock();
+                }
+            }
+        }
+
+        // 2. Mission Logic
+        function handleSensorData(data) {
+            if (data.includes("FIRE:")) {
+                const zoneId = data.split(":")[1];
+                triggerAlert(zoneId);
+            }
+        }
+
+        function triggerAlert(zone) {
+            document.getElementById('emergency-modal').style.display = 'flex';
+            togglePump(true);
+            startSiren();
+            
+            // Highlight specific zone
+            const zoneMap = { '1': 'alpha', '2': 'beta', '3': 'gamma' };
+            const el = document.getElementById(zoneMap[zone]);
+            el.classList.add('active-fire');
+            el.querySelector('.status-label').innerText = "FIRE";
+        }
+
+        function acknowledgeAlert() {
+            document.getElementById('emergency-modal').style.display = 'none';
+            togglePump(false);
+            stopSiren();
+            // Reset zone UI
+            document.querySelectorAll('.zone').forEach(z => {
+                z.classList.remove('active-fire');
+                z.querySelector('.status-label').innerText = "SAFE";
+            });
+        }
+
+        async function togglePump(on) {
+            if (!port) return;
+            const encoder = new TextEncoder();
+            const writer = port.writable.getWriter();
+            await writer.write(encoder.encode(on ? "W1\n" : "W0\n"));
+            writer.releaseLock();
+        }
+
+        // 3. Procedural Audio (Web Audio API Siren)
+        function startSiren() {
+            if (sirenInterval) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            
+            sirenInterval = setInterval(() => {
+                osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+                setTimeout(() => {
+                    osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+                }, 200);
+            }, 400);
+            window.activeOsc = osc;
+        }
+
+        function stopSiren() {
+            if (window.activeOsc) {
+                window.activeOsc.stop();
+                clearInterval(sirenInterval);
+                sirenInterval = null;
+            }
+        }
+
+        // 4. Camera Setup
+        async function startCamera() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            document.getElementById('webcam').srcObject = stream;
+        }
+        startCamera();
+    </script>
+</body>
+</html>

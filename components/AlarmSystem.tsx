@@ -57,39 +57,44 @@ const AlarmSystem: React.FC<Props> = ({ isActive, onAcknowledge }) => {
   if (!isActive) return null;
 
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center p-2 sm:p-4 md:p-8 bg-red-700/90 backdrop-blur-xl border-[8px] md:border-[32px] border-red-600 animate-emergency-flash overflow-hidden">
-      <div className="bg-white p-4 sm:p-8 md:p-12 rounded-[25px] md:rounded-[60px] shadow-[0_0_100px_rgba(0,0,0,0.5)] border-4 md:border-8 border-black flex flex-col items-center gap-4 md:gap-8 w-full max-w-lg md:max-w-2xl text-center relative overflow-y-auto max-h-[95%]">
-        {/* Decorative caution stripes */}
-        <div className="absolute top-0 left-0 right-0 h-3 md:h-6 bg-yellow-400 flex overflow-hidden">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-8 bg-red-700/90 backdrop-blur-xl border-[10px] sm:border-[20px] md:border-[32px] border-red-600 animate-emergency-flash overflow-hidden">
+      {/* White Alert Box: Using max-h-full and flex-shrink to ensure it fits in landscape mobile */}
+      <div className="bg-white p-6 sm:p-10 md:p-14 rounded-[30px] sm:rounded-[50px] shadow-[0_0_100px_rgba(0,0,0,0.8)] border-4 sm:border-8 border-black flex flex-col items-center gap-4 sm:gap-6 md:gap-8 w-full max-w-lg md:max-w-2xl text-center relative overflow-hidden flex-shrink max-h-full">
+        
+        {/* Decorative caution stripes - Header */}
+        <div className="absolute top-0 left-0 right-0 h-4 md:h-6 bg-yellow-400 flex overflow-hidden shrink-0">
           {[...Array(20)].map((_, i) => (
-            <div key={i} className="min-w-[30px] md:min-w-[40px] h-full bg-black -skew-x-45 mr-3 md:mr-4"></div>
+            <div key={i} className="min-w-[40px] h-full bg-black -skew-x-45 mr-4"></div>
           ))}
         </div>
 
-        <div className="bg-red-600 p-4 md:p-10 rounded-full shadow-lg ring-4 md:ring-12 ring-red-100 animate-bounce mt-6">
-          <i className="fa-solid fa-skull-crossbones text-4xl md:text-9xl text-white"></i>
+        {/* Scalable Icon container */}
+        <div className="bg-red-600 p-4 sm:p-6 md:p-10 rounded-full shadow-lg ring-4 md:ring-12 ring-red-100 animate-bounce mt-6 sm:mt-8 shrink-0">
+          <i className="fa-solid fa-skull-crossbones text-4xl sm:text-6xl md:text-9xl text-white"></i>
         </div>
         
-        <div className="space-y-1 md:space-y-4">
-          <h2 className="text-3xl sm:text-4xl md:text-8xl font-black text-red-600 tracking-tighter leading-none uppercase italic">
+        {/* Text Section: Adjusting sizes for different viewports */}
+        <div className="space-y-1 md:space-y-4 overflow-y-auto min-h-0">
+          <h2 className="text-3xl sm:text-5xl md:text-8xl font-black text-red-600 tracking-tighter leading-none uppercase italic">
             Lethal Fire
           </h2>
-          <p className="text-xs sm:text-base md:text-3xl font-black text-stone-900 uppercase tracking-tight">
+          <p className="text-xs sm:text-lg md:text-3xl font-black text-stone-900 uppercase tracking-tight">
             Immediate Evacuation Required
           </p>
         </div>
 
+        {/* Button: Smaller on mobile, massive on desktop */}
         <button
           onClick={onAcknowledge}
-          className="w-full bg-red-600 hover:bg-red-700 text-white text-lg sm:text-2xl md:text-5xl font-black py-4 md:py-10 rounded-xl md:rounded-[40px] border-b-[6px] md:border-b-[16px] border-red-900 transition-all hover:translate-y-1 active:border-b-0 active:translate-y-3 uppercase shadow-2xl mt-2 mb-4"
+          className="w-full bg-red-600 hover:bg-red-700 text-white text-lg sm:text-2xl md:text-5xl font-black py-4 sm:py-6 md:py-10 rounded-xl sm:rounded-2xl md:rounded-[40px] border-b-[6px] md:border-b-[16px] border-red-900 transition-all hover:translate-y-1 active:border-b-0 active:translate-y-3 uppercase shadow-2xl mt-auto mb-6 sm:mb-8 shrink-0"
         >
           Acknowledge
         </button>
 
-        {/* Bottom decorative stripes */}
-        <div className="absolute bottom-0 left-0 right-0 h-3 md:h-6 bg-yellow-400 flex overflow-hidden">
+        {/* Decorative stripes - Footer */}
+        <div className="absolute bottom-0 left-0 right-0 h-4 md:h-6 bg-yellow-400 flex overflow-hidden shrink-0">
           {[...Array(20)].map((_, i) => (
-            <div key={i} className="min-w-[30px] md:min-w-[40px] h-full bg-black -skew-x-45 mr-3 md:mr-4"></div>
+            <div key={i} className="min-w-[40px] h-full bg-black -skew-x-45 mr-4"></div>
           ))}
         </div>
       </div>

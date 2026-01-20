@@ -16,45 +16,42 @@ const SensorStatusPanel: React.FC<Props> = ({ sensors }) => {
         return (
           <div 
             key={sensor.id} 
-            className={`kahoot-card rounded-[20px] md:rounded-[25px] p-4 md:p-6 border-b-4 md:border-b-8 transition-all ${
+            className={`kahoot-card rounded-[20px] md:rounded-[25px] p-6 md:p-10 border-b-4 md:border-b-8 transition-all relative overflow-hidden ${
               isFire 
                 ? 'bg-red-600 border-red-800 animate-pulse' 
                 : 'bg-orange-500 border-orange-700'
             }`}
           >
-            <div className="flex justify-between items-start mb-3 md:mb-4">
-              <div>
-                <h3 className="text-[8px] md:text-xs font-black text-orange-100 uppercase tracking-widest mb-1">Flame Sensor</h3>
-                <h2 className="text-xl md:text-3xl font-black text-white">{sensor.name}</h2>
+            {/* Background pattern */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+
+            <div className="flex justify-between items-center mb-4 relative z-10">
+              <div className="flex flex-col">
+                <h3 className="text-[9px] md:text-xs font-black text-orange-100 uppercase tracking-widest mb-1 opacity-70 italic">Security Node</h3>
+                <h2 className="text-2xl md:text-4xl font-black text-white tracking-tighter uppercase">{sensor.name}</h2>
               </div>
-              <div className={`p-2 md:p-3 rounded-lg md:rounded-xl shadow-lg ${isFire ? 'bg-white' : 'bg-orange-600'}`}>
-                <i className={`fa-solid ${isFire ? 'fa-fire-burner text-red-600' : 'fa-microchip text-white'} text-lg md:text-2xl`}></i>
+              <div className={`p-3 md:p-5 rounded-2xl shadow-2xl transition-all ${isFire ? 'bg-white scale-110' : 'bg-orange-600'}`}>
+                <i className={`fa-solid ${isFire ? 'fa-fire-alt text-red-600' : 'fa-microchip text-white'} text-2xl md:text-4xl`}></i>
               </div>
             </div>
 
-            <div className="bg-black/20 rounded-xl md:rounded-2xl p-3 md:p-4 mb-3 md:mb-4 backdrop-blur-sm border border-white/5">
-              <div className="flex justify-between items-center mb-1.5 md:mb-2">
-                <span className="text-[8px] md:text-[10px] font-black uppercase text-orange-200">Intensity</span>
-                <span className="text-lg md:text-xl font-black text-white">{sensor.value}%</span>
-              </div>
-              <div className="w-full bg-black/40 h-2 md:h-3 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full transition-all duration-700 ease-out ${isFire ? 'bg-white shadow-[0_0_10px_white]' : 'bg-amber-400'}`}
-                  style={{ width: `${sensor.value}%` }}
-                ></div>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center gap-2">
-              <div className={`px-3 py-1 md:px-4 md:py-2 rounded-full text-[8px] md:text-xs font-black uppercase flex items-center gap-1.5 md:gap-2 shadow-sm ${
-                isFire ? 'bg-white text-red-600' : 'bg-orange-800 text-orange-200'
+            <div className="flex flex-col gap-4 relative z-10">
+              <div className={`w-full py-5 md:py-8 rounded-2xl font-black uppercase text-center text-xl md:text-3xl shadow-inner flex items-center justify-center gap-4 transition-all ${
+                isFire ? 'bg-white text-red-600 ring-8 ring-red-400/30' : 'bg-orange-800/40 text-orange-100'
               }`}>
-                <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${isFire ? 'bg-red-600 status-pulse' : isReady ? 'bg-green-400' : 'bg-stone-500'}`}></div>
+                <div className={`w-4 h-4 md:w-5 md:h-5 rounded-full ${isFire ? 'bg-red-600 animate-ping' : isReady ? 'bg-green-400' : 'bg-stone-500'}`}></div>
                 {sensor.status}
               </div>
-              <span className="text-[8px] md:text-[10px] font-bold text-orange-200 uppercase opacity-60 truncate">
-                {sensor.lastUpdated}
-              </span>
+              
+              <div className="flex justify-between items-center px-2">
+                <span className="text-[10px] md:text-xs font-bold text-orange-100 uppercase opacity-60 flex items-center gap-2">
+                  <i className="fa-regular fa-clock"></i>
+                  {sensor.lastUpdated}
+                </span>
+                <span className="text-[10px] md:text-xs font-black text-orange-100 uppercase tracking-widest opacity-30">
+                  REF: S_NODE_{sensor.id}
+                </span>
+              </div>
             </div>
           </div>
         );

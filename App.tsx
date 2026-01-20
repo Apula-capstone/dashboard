@@ -10,9 +10,9 @@ import LoadingScreen from './components/LoadingScreen';
 import { SensorData, SensorStatus, HistoryPoint, ConnectionState } from './types';
 
 const INITIAL_SENSORS: SensorData[] = [
-  { id: '1', name: 'Alpha Sensor', value: 0, status: SensorStatus.NOT_READY, lastUpdated: 'Disconnected' },
-  { id: '2', name: 'Beta Sensor', value: 0, status: SensorStatus.NOT_READY, lastUpdated: 'Disconnected' },
-  { id: '3', name: 'Gamma Sensor', value: 0, status: SensorStatus.NOT_READY, lastUpdated: 'Disconnected' },
+  { id: '1', name: 'Alpha Zone', value: 0, status: SensorStatus.NOT_READY, lastUpdated: 'Disconnected' },
+  { id: '2', name: 'Beta Zone', value: 0, status: SensorStatus.NOT_READY, lastUpdated: 'Disconnected' },
+  { id: '3', name: 'Gamma Zone', value: 0, status: SensorStatus.NOT_READY, lastUpdated: 'Disconnected' },
 ];
 
 const App: React.FC = () => {
@@ -31,8 +31,7 @@ const App: React.FC = () => {
 
   const handleLoadingFinished = () => {
     setIsLoading(false);
-    // Smooth transition delay
-    setTimeout(() => setShowDashboard(true), 50);
+    setTimeout(() => setShowDashboard(true), 100);
   };
 
   useEffect(() => {
@@ -47,57 +46,53 @@ const App: React.FC = () => {
   }, [sensors, isAlarmActive]);
 
   const processSerialData = useCallback((data: string) => {
-    const cleanData = data.trim();
+    const cleanData = data.trim().toUpperCase();
     if (isTestActive) return;
 
-    // Handle "SENSORS:1,0,1" format (0=fire, 1=no fire)
-    if (cleanData.startsWith("SENSORS:")) {
-      const payload = cleanData.replace("SENSORS:", "");
-      const values = payload.split(',').map(v => parseInt(v.trim(), 10));
-      
-      if (values.length >= 3) {
-        setSensors(prev => prev.map((s, i) => {
-          const rawVal = values[i]; // 0 or 1
-          if (isNaN(rawVal)) return s;
-
-          // Arduino: 0 = Fire, 1 = No Fire
-          // UI: 100% = Fire, 0% = No Fire
-          const intensity = rawVal === 0 ? 100 : 0;
-          const status = rawVal === 0 ? SensorStatus.FIRE_DETECTED : SensorStatus.SAFE;
-          
-          return {
-            ...s,
-            value: intensity,
-            status,
-            lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-          };
-        }));
-      }
-    }
+    // Detection logic:
+    // 1. Check for "SENSORS:x,y,z" (0=FIRE, 1=SAFE)
+    // 2. Check for "FIRE" anywhere in the stream
+    // 3. Fallback to raw CSV parsing if it contains 0s and 1s
     
-    // Also handle individual "FIRE:SensorX:250" messages
-    if (cleanData.startsWith("FIRE:")) {
-      const parts = cleanData.split(':'); // ["FIRE", "Sensor1", "250"]
-      if (parts.length >= 2) {
-        const sensorName = parts[1];
-        setSensors(prev => prev.map(s => {
-          if (s.name.includes(sensorName) || (sensorName === "Sensor1" && s.id === "1") || (sensorName === "Sensor2" && s.id === "2") || (sensorName === "Sensor3" && s.id === "3")) {
-            return {
-              ...s,
-              value: 100,
-              status: SensorStatus.FIRE_DETECTED,
-              lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-            };
-          }
-          return s;
-        }));
+    let sensorTriggered = [false, false, false];
+
+    if (cleanData.includes("SENSORS:")) {
+      const payload = cleanData.split("SENSORS:")[1];
+      const values = payload.split(',').map(v => parseInt(v.trim(), 10));
+      if (values.length >= 3) {
+        sensorTriggered = values.map(v => v === 0);
       }
+    } else if (cleanData.includes("FIRE")) {
+      // If "FIRE" is detected without specific zone, we check for specific labels
+      sensorTriggered[0] = cleanData.includes("ALPHA") || cleanData.includes("SENSOR1");
+      sensorTriggered[1] = cleanData.includes("BETA") || cleanData.includes("SENSOR2");
+      sensorTriggered[2] = cleanData.includes("GAMMA") || cleanData.includes("SENSOR3");
+      // If no specific zone, trigger all as a fallback
+      if (!sensorTriggered.some(v => v)) sensorTriggered = [true, true, true];
+    } else if (/^[01],[01],[01]$/.test(cleanData)) {
+      const values = cleanData.split(',').map(v => parseInt(v.trim(), 10));
+      sensorTriggered = values.map(v => v === 0);
+    }
+
+    if (sensorTriggered.some(v => v) || cleanData.length > 0) {
+      setSensors(prev => prev.map((s, i) => {
+        const isFlame = sensorTriggered[i];
+        // If we didn't explicitly trigger this sensor and there's no data, keep prev status if safe
+        const newStatus = isFlame ? SensorStatus.FIRE_DETECTED : SensorStatus.SAFE;
+        
+        return {
+          ...s,
+          value: isFlame ? 100 : 0,
+          status: newStatus,
+          lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        };
+      }));
     }
   }, [isTestActive]);
 
   const connectArduino = async () => {
     if (!("serial" in navigator)) {
-      alert("Please use Chrome or Edge on Desktop to use the Serial connection.");
+      alert("Serial API not supported. Use a Desktop browser like Chrome or Edge.");
       return;
     }
     setConnection(ConnectionState.CONNECTING);
@@ -112,7 +107,7 @@ const App: React.FC = () => {
       const reader = textDecoder.readable.getReader();
       readerRef.current = reader;
       
-      setSensors(prev => prev.map(s => ({ ...s, status: SensorStatus.INITIALIZING })));
+      setSensors(prev => prev.map(s => ({ ...s, status: SensorStatus.READY })));
 
       let buffer = '';
       while (true) {
@@ -126,7 +121,7 @@ const App: React.FC = () => {
         }
       }
     } catch (err) {
-      console.error(err);
+      console.error("Serial Error:", err);
       setConnection(ConnectionState.ERROR);
     }
   };
@@ -155,11 +150,10 @@ const App: React.FC = () => {
     setIsAlarmActive(false);
     if (isTestActive) {
       setIsTestActive(false);
-      if (connection === ConnectionState.CONNECTED) {
-        setSensors(prev => prev.map(s => ({ ...s, status: SensorStatus.READY })));
-      } else {
-        setSensors(INITIAL_SENSORS);
-      }
+      setSensors(prev => prev.map(s => ({ 
+        ...s, 
+        status: connection === ConnectionState.CONNECTED ? SensorStatus.READY : SensorStatus.NOT_READY 
+      })));
     }
   };
 
@@ -178,17 +172,16 @@ const App: React.FC = () => {
   return (
     <div className={`transition-all duration-1000 ease-out transform ${showDashboard ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-95'}`}>
       <AlarmSystem isActive={isAlarmActive} onAcknowledge={acknowledgeAlarm} />
-      <div className="max-w-[1600px] mx-auto px-4 pb-12 overflow-x-hidden">
+      <div className="max-w-[1700px] mx-auto px-4 pb-12 overflow-x-hidden">
         <Header />
         
-        <main className="mt-6 md:mt-10 grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-8 items-start">
-          {/* Main Monitor Area */}
-          <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-4 md:gap-8">
-            <div className="h-[280px] sm:h-[450px] md:h-[550px] xl:h-[650px] w-full">
+        <main className="mt-8 md:mt-12 grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-10 items-start">
+          <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-6 md:gap-10">
+            <div className="h-[300px] sm:h-[450px] md:h-[600px] xl:h-[700px] w-full">
               <CameraFeed />
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-10">
               <ArduinoConnect 
                 state={connection} 
                 onConnect={connectArduino} 
@@ -198,45 +191,45 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Controls & Sidebar */}
-          <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-4 md:gap-6 lg:sticky lg:top-8">
-            <div className={`rounded-[30px] md:rounded-[40px] p-6 md:p-10 border-b-[8px] md:border-b-[12px] transition-all flex items-center justify-between shadow-2xl relative overflow-hidden ${
+          <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-6 md:gap-8 lg:sticky lg:top-8">
+            <div className={`rounded-[35px] md:rounded-[45px] p-8 md:p-12 border-b-[10px] md:border-b-[15px] transition-all flex items-center justify-between shadow-2xl relative overflow-hidden ${
               sensors.some(s => s.status === SensorStatus.FIRE_DETECTED) 
               ? 'bg-red-700 border-red-900 animate-pulse' 
               : connection === ConnectionState.CONNECTED ? 'bg-emerald-600 border-emerald-800' : 'bg-stone-800 border-stone-900'
             }`}>
                <div className="text-white relative z-10">
-                  <h3 className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] mb-1 opacity-70">Detection Status</h3>
-                  <p className="text-xl md:text-4xl font-black uppercase tracking-tighter leading-none">
-                    {sensors.some(s => s.status === SensorStatus.FIRE_DETECTED) ? 'EXTREME ALERT' : connection === ConnectionState.CONNECTED ? 'GUARD ACTIVE' : 'SYSTEM IDLE'}
+                  <h3 className="text-[11px] md:text-xs font-black uppercase tracking-[0.3em] mb-2 opacity-70">Detection Grid</h3>
+                  <p className="text-2xl md:text-5xl font-black uppercase tracking-tighter leading-none">
+                    {sensors.some(s => s.status === SensorStatus.FIRE_DETECTED) ? 'PANIC ACTIVE' : connection === ConnectionState.CONNECTED ? 'ARMED' : 'STANDBY'}
                   </p>
                </div>
-               <i className={`fa-solid ${sensors.some(s => s.status === SensorStatus.FIRE_DETECTED) ? 'fa-radiation' : 'fa-shield-halved'} text-3xl md:text-6xl text-white opacity-80`}></i>
+               <i className={`fa-solid ${sensors.some(s => s.status === SensorStatus.FIRE_DETECTED) ? 'fa-fire-alt' : 'fa-shield-halved'} text-4xl md:text-7xl text-white opacity-80 z-10`}></i>
+               <div className="absolute -right-4 -top-4 w-32 h-32 bg-white/10 blur-3xl rounded-full"></div>
             </div>
 
             <SensorStatusPanel sensors={sensors} />
             
-            <div className="bg-stone-900 rounded-[30px] md:rounded-[40px] p-6 md:p-10 border-b-[8px] md:border-b-[12px] border-stone-950 flex flex-col gap-4 md:gap-6 shadow-xl">
-              <h4 className="text-[10px] md:text-xs font-black text-stone-500 uppercase tracking-widest border-l-4 border-orange-600 pl-3">Emergency Control Unit</h4>
+            <div className="bg-stone-900 rounded-[35px] md:rounded-[45px] p-8 md:p-12 border-b-[10px] md:border-b-[15px] border-stone-950 flex flex-col gap-6 md:gap-8 shadow-2xl">
+              <h4 className="text-[11px] md:text-xs font-black text-stone-500 uppercase tracking-widest border-l-4 border-orange-600 pl-4">Directive Control Console</h4>
               
               <button 
-                className="w-full bg-red-600 hover:bg-red-500 active:scale-95 text-white font-black py-4 md:py-6 rounded-2xl md:rounded-[30px] border-b-8 border-red-800 transition-all uppercase flex items-center justify-center gap-3 text-sm md:text-xl shadow-lg"
+                className="w-full bg-red-600 hover:bg-red-500 active:scale-95 text-white font-black py-5 md:py-8 rounded-2xl md:rounded-[35px] border-b-8 md:border-b-[12px] border-red-800 transition-all uppercase flex items-center justify-center gap-4 text-sm md:text-2xl shadow-xl"
                 onClick={triggerTestAlarm}
               >
-                <i className="fa-solid fa-fire-extinguisher"></i>
+                <i className="fa-solid fa-radiation animate-spin-slow text-2xl md:text-4xl"></i>
                 Simulate Panic
               </button>
 
-              <div className="grid grid-cols-2 gap-3 md:gap-4">
+              <div className="grid grid-cols-2 gap-4 md:gap-6">
                 <button 
                   onClick={() => setFireIncidentCount(0)}
-                  className="bg-stone-800 hover:bg-stone-700 text-stone-400 font-black py-3 md:py-4 rounded-xl md:rounded-[20px] border-b-4 border-stone-950 transition-all uppercase text-[10px] md:text-xs"
+                  className="bg-stone-800 hover:bg-stone-700 text-stone-400 font-black py-4 md:py-6 rounded-xl md:rounded-[25px] border-b-4 border-stone-950 transition-all uppercase text-[10px] md:text-xs tracking-widest"
                 >
                   Clear Logs
                 </button>
                 <button 
                   onClick={() => setSensors(INITIAL_SENSORS)}
-                  className="bg-stone-800 hover:bg-stone-700 text-stone-400 font-black py-3 md:py-4 rounded-xl md:rounded-[20px] border-b-4 border-stone-950 transition-all uppercase text-[10px] md:text-xs"
+                  className="bg-stone-800 hover:bg-stone-700 text-stone-400 font-black py-4 md:py-6 rounded-xl md:rounded-[25px] border-b-4 border-stone-950 transition-all uppercase text-[10px] md:text-xs tracking-widest"
                 >
                   Hard Reset
                 </button>
@@ -245,17 +238,15 @@ const App: React.FC = () => {
           </div>
         </main>
 
-        <footer className="mt-12 md:mt-20 pt-8 md:pt-12 border-t border-white/5 text-center text-stone-600">
-          <p className="text-[9px] md:text-[11px] font-black uppercase tracking-[0.4em] mb-4">APULA // Automated Prevention Unit for Lethal Ablaze</p>
-          <div className="flex justify-center items-center gap-4 md:gap-8 opacity-20 text-xl">
-             <i className="fa-solid fa-microchip"></i>
-             <div className="h-px w-12 bg-stone-700"></div>
-             <i className="fa-solid fa-satellite-dish"></i>
-             <div className="h-px w-12 bg-stone-700"></div>
-             <i className="fa-solid fa-shield-halved"></i>
-          </div>
+        <footer className="mt-20 md:mt-32 pt-12 md:pt-16 border-t border-white/5 text-center text-stone-600">
+          <p className="text-[10px] md:text-[13px] font-black uppercase tracking-[0.5em] mb-4 text-stone-500/50">APULA SYSTEM ARCHITECTURE // HARDWARE SYNC V2.6.0</p>
         </footer>
       </div>
+      
+      <style>{`
+        .animate-spin-slow { animation: spin 4s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 };

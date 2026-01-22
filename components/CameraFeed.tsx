@@ -62,7 +62,8 @@ const CameraFeed: React.FC = () => {
       // Step 2: Connect to local WebRTC Gateway (webrtc-streamer)
       // Defaults to localhost:8001 (Option B) if not specified
       const STREAMER_URL = import.meta.env.VITE_WEBRTC_GATEWAY || "http://localhost:8001"; 
-      log(`Contacting Gateway at ${STREAMER_URL}...`);
+      log(`Gateway: ${STREAMER_URL}`);
+      log(`Contacting Gateway...`);
 
       const pc = new RTCPeerConnection({
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
@@ -97,7 +98,7 @@ const CameraFeed: React.FC = () => {
 
       if (!response.ok) {
         if (response.status === 404) {
-          throw new Error(`404 Not Found: Gateway not seen at ${STREAMER_URL}. Is it running on this port?`);
+          throw new Error(`404 Not Found at ${apiUrl}. Is webrtc-streamer running on port ${STREAMER_URL.split(':').pop()}?`);
         }
         throw new Error(`Gateway Error: ${response.status} ${response.statusText}`);
       }

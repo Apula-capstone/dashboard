@@ -89,13 +89,24 @@ const DownloadPage: React.FC<Props> = ({ onBack }) => {
                 </div>
 
                 {/* Troubleshooting */}
-                <div className="bg-orange-500/10 border border-orange-500/20 rounded-2xl p-4">
+                <div className="bg-orange-500/10 border border-orange-500/20 rounded-2xl p-4 mb-4">
                   <p className="text-orange-500 text-[10px] font-black uppercase mb-1">
                     <i className="fa-solid fa-circle-info mr-2"></i>
                     Not working?
                   </p>
                   <p className="text-stone-500 text-xs font-bold leading-tight">
                     If the black window closes immediately, please **RESTART** your computer. This finishes the Node.js installation.
+                  </p>
+                </div>
+
+                {/* Shortcut Tip */}
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4">
+                  <p className="text-emerald-500 text-[10px] font-black uppercase mb-1">
+                    <i className="fa-solid fa-desktop mr-2"></i>
+                    Desktop Shortcut
+                  </p>
+                  <p className="text-stone-500 text-xs font-bold leading-tight">
+                    The system will automatically create a shortcut on your desktop the first time you run it!
                   </p>
                 </div>
               </div>

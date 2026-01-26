@@ -98,15 +98,11 @@ const Statistics: React.FC<Props> = ({ data, fireCount }) => {
           <p className="text-xl md:text-3xl font-black text-white">{fireCount}</p>
         </div>
         <div className="bg-stone-800 p-3 md:p-4 rounded-xl md:rounded-2xl border-b-4 border-orange-500 text-center">
-          <p className="text-[8px] md:text-[10px] font-black uppercase text-stone-500 mb-1">Peak Intensity</p>
+          <p className="text-[8px] md:text-[10px] font-black uppercase text-stone-500 mb-1">Flame Intensity</p>
           <p className="text-lg md:text-2xl font-black text-white">42%</p>
         </div>
-        <div className="bg-stone-800 p-3 md:p-4 rounded-xl md:rounded-2xl border-b-4 border-red-500 text-center">
-          <p className="text-[8px] md:text-[10px] font-black uppercase text-stone-500 mb-1">Smoke Index</p>
-          <p className="text-lg md:text-2xl font-black text-white">LOW</p>
-        </div>
-        <div className="bg-stone-800 p-3 md:p-4 rounded-xl md:rounded-2xl border-b-4 border-emerald-500 text-center">
-          <p className="text-[8px] md:text-[10px] font-black uppercase text-stone-500 mb-1">Health</p>
+        <div className="bg-stone-800 p-3 md:p-4 rounded-xl md:rounded-2xl border-b-4 border-emerald-500 text-center col-span-2 lg:col-span-1">
+          <p className="text-[8px] md:text-[10px] font-black uppercase text-stone-500 mb-1">System Health</p>
           <p className="text-lg md:text-2xl font-black text-white">98%</p>
         </div>
       </div>

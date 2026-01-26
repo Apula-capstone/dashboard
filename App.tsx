@@ -257,6 +257,8 @@ const App: React.FC = () => {
                 baudRate={115200}
               />
             </div>
+
+            <Statistics data={history} fireCount={fireIncidentCount} />
           </div>
 
           <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-6 md:gap-8 lg:sticky lg:top-8">

@@ -7,6 +7,7 @@ import Statistics from './components/Statistics';
 import ArduinoConnect from './components/ArduinoConnect';
 import AlarmSystem from './components/AlarmSystem';
 import LoadingScreen from './components/LoadingScreen';
+import DownloadPage from './components/DownloadPage';
 import { SensorData, SensorStatus, HistoryPoint, ConnectionState } from './types';
 
 const INITIAL_SENSORS: SensorData[] = [
@@ -18,6 +19,7 @@ const INITIAL_SENSORS: SensorData[] = [
 const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showDashboard, setShowDashboard] = useState(false);
+  const [isDownloadMode, setIsDownloadMode] = useState(false);
   const [sensors, setSensors] = useState<SensorData[]>(INITIAL_SENSORS);
   const [history, setHistory] = useState<HistoryPoint[]>([]);
   const [fireIncidentCount, setFireIncidentCount] = useState(0);
@@ -229,11 +231,26 @@ const App: React.FC = () => {
 
   if (isLoading) return <LoadingScreen onFinished={handleLoadingFinished} />;
 
+  if (isDownloadMode) {
+    return <DownloadPage onBack={() => setIsDownloadMode(false)} />;
+  }
+
   return (
     <div className={`transition-all duration-1000 ease-out transform ${showDashboard ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-95'}`}>
       <AlarmSystem isActive={isAlarmActive} onAcknowledge={acknowledgeAlarm} />
       <div className="max-w-[1700px] mx-auto px-4 pb-12 overflow-x-hidden">
         <Header />
+        
+        {/* Offline Mode Entry Point */}
+        <div className="mt-6 flex justify-end">
+          <button 
+            onClick={() => setIsDownloadMode(true)}
+            className="bg-stone-900 hover:bg-orange-600 text-orange-500 hover:text-white px-6 py-3 rounded-2xl border-2 border-orange-600/30 hover:border-orange-500 transition-all font-black uppercase tracking-widest text-[10px] md:text-xs flex items-center gap-3 shadow-lg group"
+          >
+            <i className="fa-solid fa-cloud-arrow-down group-hover:bounce"></i>
+            Enable Offline Mode
+          </button>
+        </div>
         
         <main className="mt-8 md:mt-12 grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-10 items-start">
           <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-6 md:gap-10">

@@ -115,7 +115,7 @@ const DownloadPage: React.FC<Props> = ({ onBack }) => {
         </div>
 
         <footer className="mt-16 pb-12 text-center text-stone-600 font-bold uppercase tracking-[0.4em] text-[10px]">
-          APULA // Air-Gapped Security Architecture // v2.6.0
+          APULA // Offline Distribution // v2.6.0
         </footer>
       </div>
     </div>

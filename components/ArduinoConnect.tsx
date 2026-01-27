@@ -77,7 +77,7 @@ const ArduinoConnect: React.FC<Props> = ({ state, onConnect, onDisconnect, onPro
           <h2 className="text-lg md:text-xl font-black text-white uppercase tracking-tighter">{label || 'Wireless Node'}</h2>
         </div>
         <div className="flex items-center gap-2">
-          {onProvision && !isConnected && !isConnecting && (
+          {!isConnected && !isConnecting && (
             <button 
               onClick={() => setShowProvision(true)}
               className="bg-stone-800 p-2 rounded-lg text-stone-400 hover:text-orange-500 transition-colors"

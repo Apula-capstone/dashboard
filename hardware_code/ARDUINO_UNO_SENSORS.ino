@@ -10,7 +10,7 @@ const int BUZZER_PIN  = 5;
 const int STATUS_LED  = 13;
 
 void setup() {
-  // Use 115200 to match ESP32 if connecting via Serial
+  // Standard Baud Rate
   Serial.begin(115200);
   
   pinMode(FLAME_ALPHA, INPUT);
@@ -19,6 +19,7 @@ void setup() {
   pinMode(BUZZER_PIN, OUTPUT);
   pinMode(STATUS_LED, OUTPUT);
   
+  // Handshake signal
   Serial.println("ARDUINO_NODE_READY");
 }
 
@@ -38,14 +39,17 @@ void loop() {
     digitalWrite(STATUS_LED, LOW);
   }
 
-  // Send to Serial (For ESP32 Bridge or Direct Serial)
-  // Format: SENSORS:Alpha,Beta,Gamma (1=Fire, 0=Safe)
+  // Send to Serial (For Web Dashboard)
+  // Format: SENSORS:Alpha,Beta,Gamma 
+  // APULA Web expects: 0 = FIRE, 1 = SAFE
+  
   Serial.print("SENSORS:");
-  Serial.print(s1 == LOW ? "1" : "0");
+  // If s1 is LOW (Fire), send "0". If HIGH (Safe), send "1".
+  Serial.print(s1 == LOW ? "0" : "1");
   Serial.print(",");
-  Serial.print(s2 == LOW ? "1" : "0");
+  Serial.print(s2 == LOW ? "0" : "1");
   Serial.print(",");
-  Serial.println(s3 == LOW ? "1" : "0");
+  Serial.println(s3 == LOW ? "0" : "1");
 
   delay(200); // Send data 5 times per second
 }
